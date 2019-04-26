@@ -3,8 +3,7 @@
 
 
 from colcon_core.event.job import JobEnded
-from colcon_sanitizer_reports.event_handlers.sanitizer_report \
-    import SanitizerReportEventHandler
+from colcon_sanitizer_reports.event_handlers.sanitizer_report import SanitizerReportEventHandler
 from mock import patch
 
 
