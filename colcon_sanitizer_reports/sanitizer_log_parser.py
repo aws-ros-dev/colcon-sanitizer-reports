@@ -56,12 +56,12 @@ class SanitizerLogParser:
     more significant stack traces that are helpful for determining the root cause of the error or
     warning.
 
-    Lines from "colcon test" output should be added to the parser one at a time with the add_line()
-    method. When finished, the report can be access from the csv property.
+    Lines from "colcon test" output should be added to the parser one at a time with the
+    parse_line() method. When finished, the report can be access from the csv property.
 
     CSV output columns are "package,error_name,stack_trace_key,count". Package, error_name, and
-    stack_trace_key columns make up the primary key for CSV output. See SanitizerLogParserOutputPrimaryKey for more
-    details about the primary key.
+    stack_trace_key columns make up the primary key for CSV output. See
+    SanitizerLogParserOutputPrimaryKey for more details about the primary key.
 
     CSV output additional columns include:
 
@@ -95,12 +95,12 @@ class SanitizerLogParser:
     def set_package(self, package: Optional[str]) -> None:
         self._package = package
 
-    def add_line(self, line: str) -> None:
+    def parse_line(self, line: str) -> None:
         line = line.rstrip()
 
         # If we have a sanitizer section starting line, start gathering lines for it.
         match = re.match(_FIND_SECTION_START_LINE_REGEX, line)
-        if match is not None:
+        if match:
             # Future lines for this new sanitizer section are sometimes interleaved with unrelated
             # log lines due to multi-threaded logging. The log lines we care about will have the
             # same prefix, so they will match the following pattern with the prefix included.

@@ -46,7 +46,7 @@ class SanitizerLogParserFixture:
             parser.set_package(self.resource_name)
             with open(self.input_log_path, 'r') as input_log_f_in:
                 for line in input_log_f_in.readlines():
-                    parser.add_line(line)
+                    parser.parse_line(line)
 
             self._sanitizer_log_parser = parser
             parser.set_package(None)
