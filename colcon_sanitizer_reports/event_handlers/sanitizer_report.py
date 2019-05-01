@@ -38,7 +38,7 @@ class SanitizerReportEventHandler(EventHandlerExtensionPoint):
             log_f = get_log_path() / job.identifier / STDOUT_STDERR_LOG_FILENAME
             with open(log_f, 'r') as in_file:
                 for line in in_file:
-                    self._log_parser.add_line(line)
+                    self._log_parser.parse_line(line)
         except IOError:
             logger.info('Could not open sanitizer error log file')
 
