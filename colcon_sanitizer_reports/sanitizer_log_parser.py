@@ -1,5 +1,16 @@
-# Copyright 2019 Open Source Robotics Foundation
-# Licensed under the Apache License, version 2.0
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from collections import defaultdict
 import csv
@@ -70,10 +81,10 @@ class SanitizerLogParser:
     """
 
     def __init__(self) -> None:
-        # Holds count of errors seen for each output key (.
+        # Holds count of errors seen for each output key.
         self._count_by_output_primary_key = defaultdict(int)
 
-        # Current package output that is being parsed
+        # Current package output that is being parsed.
         self._package: Optional[str] = None
 
         # We keep lines for partially-gathered sanitizer sections here. Incoming lines that match
@@ -81,14 +92,13 @@ class SanitizerLogParser:
         # noinspection PyUnresolvedReferences
         self._lines_by_find_line_regex: Dict[re.Pattern, List[str]] = {}
 
-    @property
-    def csv(self) -> str:
+    def get_csv(self) -> str:
         """Return a csv representation of reported error/warnings."""
         csv_f_out = StringIO()
         writer = csv.writer(csv_f_out)
         writer.writerow([*SanitizerLogParserOutputPrimaryKey._fields, 'count'])
-        for output_key, count in self._count_by_output_primary_key.items():
-            writer.writerow([*output_key, count])
+        for output_primary_key, count in self._count_by_output_primary_key.items():
+            writer.writerow([*output_primary_key, count])
 
         return csv_f_out.getvalue()
 
@@ -99,8 +109,8 @@ class SanitizerLogParser:
         line = line.rstrip()
 
         # If we have a sanitizer section starting line, start gathering lines for it.
-        match = re.match(_FIND_SECTION_START_LINE_REGEX, line)
-        if match:
+        match = _FIND_SECTION_START_LINE_REGEX.match(line)
+        if match is not None:
             # Future lines for this new sanitizer section are sometimes interleaved with unrelated
             # log lines due to multi-threaded logging. The log lines we care about will have the
             # same prefix, so they will match the following pattern with the prefix included.
@@ -111,13 +121,13 @@ class SanitizerLogParser:
         # If this line belongs to one of the sections we're currently building, append it to lines
         # for that section.
         for find_line_regex, lines in self._lines_by_find_line_regex.items():
-            match = re.match(find_line_regex, line)
+            match = find_line_regex.match(line)
             if match is not None:
                 lines.append(match.groupdict()['line'])
 
                 # If this is the last line of a section, create the section and stop gathering lines
                 # for it.
-                match = re.match(_FIND_SECTION_END_LINE_REGEX, line)
+                match = _FIND_SECTION_END_LINE_REGEX.match(line)
                 if match is not None:
                     section = SanitizerSection(lines=tuple(lines))
                     for part in section.parts:
