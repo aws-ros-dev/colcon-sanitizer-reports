@@ -1,5 +1,16 @@
-# Copyright 2019 Open Source Robotics Foundation
-# Licensed under the Apache License, version 2.0
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import re
 from typing import List, Tuple
@@ -49,7 +60,7 @@ class SanitizerSection:
 
     def __init__(self, *, lines: Tuple[str]) -> None:
         # Section error name comes after 'Sanitizer: ', and before any open paren or hex number.
-        self.error_name = re.match(_FIND_ERROR_NAME_REGEX, lines[0]).groupdict()['error_name']
+        self.error_name = _FIND_ERROR_NAME_REGEX.match(lines[0]).groupdict()['error_name']
 
         # Divide into parts. Subsections begin with a line that is not indented.
         part_lines: List[str] = []
@@ -57,7 +68,7 @@ class SanitizerSection:
         for line in lines:
             # Check if this the beginning of a new part and we collected lines for a previous part.
             # If so, create the previous part and start collecting for the new part.
-            match = re.match(_FIND_SECTION_PART_BEGIN_REGEX, line)
+            match = _FIND_SECTION_PART_BEGIN_REGEX.match(line)
             if match is not None and part_lines:
                 sub_sections.append(
                     SanitizerSectionPart(error_name=self.error_name, lines=tuple(part_lines))

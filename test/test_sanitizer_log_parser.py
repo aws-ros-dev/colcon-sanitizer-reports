@@ -1,5 +1,16 @@
-# Copyright 2019 Open Source Robotics Foundation
-# Licensed under the Apache License, version 2.0
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from csv import DictReader
 import os
@@ -55,7 +66,7 @@ class SanitizerLogParserFixture:
 
     @property
     def report_csv(self) -> DictReader:
-        return DictReader(self.sanitizer_log_parser.csv.split('\n'))
+        return DictReader(self.sanitizer_log_parser.get_csv().split('\n'))
 
     @property
     def expected_csv(self) -> DictReader:
@@ -66,13 +77,6 @@ class SanitizerLogParserFixture:
 @pytest.fixture(params=_RESOURCE_NAMES)
 def sanitizer_log_parser_fixture(request) -> SanitizerLogParserFixture:
     return SanitizerLogParserFixture(request.param)
-
-
-def test_csv_has_output(sanitizer_log_parser_fixture) -> None:
-    if sanitizer_log_parser_fixture.resource_name == 'no_errors':
-        assert len(list(sanitizer_log_parser_fixture.report_csv)) == 0
-    else:
-        assert len(list(sanitizer_log_parser_fixture.report_csv)) > 0
 
 
 def test_csv_has_expected_line_count(sanitizer_log_parser_fixture) -> None:

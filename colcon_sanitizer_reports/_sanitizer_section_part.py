@@ -1,5 +1,16 @@
-# Copyright 2019 Open Source Robotics Foundation
-# Licensed under the Apache License, version 2.0
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from collections import ChainMap, defaultdict
 import re
@@ -88,16 +99,16 @@ class SanitizerSectionPart:
     relevant_stack_traces: Tuple[SanitizerSectionPartStackTrace]
 
     def __init__(self, *, error_name: str, lines: Tuple[str]) -> None:
-
         relevant_stack_traces: List[SanitizerSectionPartStackTrace] = []
         relevant_stack_trace_lines: Optional[List[str]] = None
-        find_relevant_stack_trace_begin_regexes = \
+        find_relevant_stack_trace_begin_regexes = (
             _FIND_RELEVANT_STACK_TRACE_BEGIN_REGEXES_BY_ERROR_NAME[error_name]
+        )
 
         for line in lines:
             # Check if we're currently gathering lines of a relevant stack trace.
             if relevant_stack_trace_lines is not None:
-                match = re.match(_FIND_STACK_TRACE_LINE_REGEX, line)
+                match = _FIND_STACK_TRACE_LINE_REGEX.match(line)
                 if match is not None:
                     relevant_stack_trace_lines.append(line)
                     continue
@@ -109,9 +120,10 @@ class SanitizerSectionPart:
                 if len(relevant_stack_traces) == len(find_relevant_stack_trace_begin_regexes):
                     break
 
-            find_relevant_stack_trace_begin_regex = \
+            find_relevant_stack_trace_begin_regex = (
                 find_relevant_stack_trace_begin_regexes[len(relevant_stack_traces)]
-            match = re.match(find_relevant_stack_trace_begin_regex, line)
+            )
+            match = find_relevant_stack_trace_begin_regex.match(line)
             if match is not None:
                 relevant_stack_trace_lines = []
 
