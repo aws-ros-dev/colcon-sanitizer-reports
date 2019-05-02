@@ -25,11 +25,12 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    python setup.py install
+    python -m pip install colcon-core colcon-output distro
+
   displayName: 'Install dependencies'
 
 - script: |
-    pip install \
+    python -m pip install \
       flake8 \
       flake8-blind-except \
       flake8-builtins \
