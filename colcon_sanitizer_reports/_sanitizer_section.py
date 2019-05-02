@@ -56,11 +56,15 @@ class SanitizerSection:
     """
 
     error_name: str
-    parts: Tuple[SanitizerSectionPart]
+    parts: Tuple[SanitizerSectionPart, ...]
 
-    def __init__(self, *, lines: Tuple[str]) -> None:
+    def __init__(self, *, lines: Tuple[str, ...]) -> None:
         # Section error name comes after 'Sanitizer: ', and before any open paren or hex number.
-        self.error_name = _FIND_ERROR_NAME_REGEX.match(lines[0]).groupdict()['error_name']
+        match = _FIND_ERROR_NAME_REGEX.match(lines[0])
+        assert match is not None, (
+            'Could not find error name in section header: {lines[0]}'.format(**locals())
+        )
+        self.error_name = match.groupdict()['error_name']
 
         # Divide into parts. Subsections begin with a line that is not indented.
         part_lines: List[str] = []
@@ -76,7 +80,8 @@ class SanitizerSection:
                 part_lines = []
 
             part_lines.append(line)
-        else:
+
+        if part_lines:
             sub_sections.append(
                 SanitizerSectionPart(error_name=self.error_name, lines=tuple(part_lines))
             )

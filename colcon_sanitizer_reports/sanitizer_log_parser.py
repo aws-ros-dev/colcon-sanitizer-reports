@@ -16,7 +16,7 @@ from collections import defaultdict
 import csv
 from io import StringIO
 import re
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Pattern
 
 from colcon_sanitizer_reports._sanitizer_section import SanitizerSection
 
@@ -28,7 +28,7 @@ _FIND_SECTION_START_LINE_REGEX = \
 # The end line of a section can be found with the following regex. Additionally, any prefix that is
 # prepended by the logging system can be extracted and be used to match the common prefix of the
 # section to which the end line belongs.
-_FIND_SECTION_END_LINE_REGEX = re.compile(r'^(?P<prefix>.*?)(SUMMARY: .*Sanitizer: .*)$')
+_FIND_SECTION_END_LINE_REGEX = re.compile(r'^(?P<prefix>.*)(SUMMARY: .*Sanitizer: .*)$')
 
 
 class SanitizerLogParserOutputPrimaryKey(NamedTuple):
@@ -82,15 +82,16 @@ class SanitizerLogParser:
 
     def __init__(self) -> None:
         # Holds count of errors seen for each output key.
-        self._count_by_output_primary_key = defaultdict(int)
+        self._count_by_output_primary_key: Dict[SanitizerLogParserOutputPrimaryKey, int] = (
+            defaultdict(int)
+        )
 
         # Current package output that is being parsed.
-        self._package: Optional[str] = None
+        self._package: str = ''
 
         # We keep lines for partially-gathered sanitizer sections here. Incoming lines that match
         # one of the find_line_regexes is appended to the associated list of lines.
-        # noinspection PyUnresolvedReferences
-        self._lines_by_find_line_regex: Dict[re.Pattern, List[str]] = {}
+        self._lines_by_find_line_regex: Dict[Pattern, List[str]] = {}
 
     def get_csv(self) -> str:
         """Return a csv representation of reported error/warnings."""
@@ -102,7 +103,7 @@ class SanitizerLogParser:
 
         return csv_f_out.getvalue()
 
-    def set_package(self, package: Optional[str]) -> None:
+    def set_package(self, package: str) -> None:
         self._package = package
 
     def parse_line(self, line: str) -> None:
@@ -133,7 +134,9 @@ class SanitizerLogParser:
                     for part in section.parts:
                         for relevant_stack_trace in part.relevant_stack_traces:
                             output_primary_key = SanitizerLogParserOutputPrimaryKey(
-                                self._package, section.error_name, relevant_stack_trace.key
+                                package=self._package,
+                                error_name=section.error_name,
+                                stack_trace_key=relevant_stack_trace.key,
                             )
                             self._count_by_output_primary_key[output_primary_key] += 1
                     del self._lines_by_find_line_regex[find_line_regex]
