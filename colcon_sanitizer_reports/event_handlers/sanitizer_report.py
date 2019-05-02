@@ -54,4 +54,4 @@ class SanitizerReportEventHandler(EventHandlerExtensionPoint):
             logger.info('Could not open sanitizer error log file')
 
         with open('sanitizer_report.csv', 'w') as report_csv_f_out:
-            report_csv_f_out.write(self._log_parser.csv)
+            report_csv_f_out.write(self._log_parser.get_csv())
