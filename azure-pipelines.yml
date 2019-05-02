@@ -51,7 +51,7 @@ steps:
   displayName: 'Install test dependencies'
 
 - script: |
-    pytest
+    pytest --junitxml=junit/test-results.xml
   displayName: 'Run tests'
 
 - script: |
