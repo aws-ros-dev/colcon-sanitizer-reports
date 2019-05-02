@@ -67,3 +67,4 @@ steps:
 - script: |
     mypy .
   displayName: 'Check types'
+  condition: 'always()'
