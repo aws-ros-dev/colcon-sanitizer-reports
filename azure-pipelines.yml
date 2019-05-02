@@ -7,8 +7,8 @@ trigger:
 - master
 
 strategy:
+  maxParallel: 3
   matrix:
-    maxParallel: 3
     Ubuntu-Py36:
       imageName: 'ubuntu-latest'
       python.version: '3.6'
