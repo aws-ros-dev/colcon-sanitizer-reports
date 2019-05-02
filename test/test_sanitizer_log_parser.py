@@ -60,7 +60,6 @@ class SanitizerLogParserFixture:
                     parser.parse_line(line)
 
             self._sanitizer_log_parser = parser
-            parser.set_package(None)
 
         return self._sanitizer_log_parser
 
@@ -85,8 +84,8 @@ def test_csv_has_expected_line_count(sanitizer_log_parser_fixture) -> None:
 
 
 def test_csv_has_expected_lines(sanitizer_log_parser_fixture) -> None:
-    def make_key(line: Dict[str, str]) -> Tuple[str, ...]:
-        return tuple(line.items())
+    def make_key(line: Dict[str, str]) -> Tuple[Tuple[str, str], ...]:
+        return tuple((k, v) for k, v in line.items())
 
     expected_line_by_key = {
         make_key(line): line for line in sanitizer_log_parser_fixture.expected_csv

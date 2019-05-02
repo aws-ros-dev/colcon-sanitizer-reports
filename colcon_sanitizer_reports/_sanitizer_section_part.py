@@ -14,36 +14,39 @@
 
 from collections import ChainMap, defaultdict
 import re
-from typing import List, Optional, Tuple
+from typing import List, Mapping, Pattern, Tuple
 
 from colcon_sanitizer_reports._sanitizer_section_part_stack_trace import \
     SanitizerSectionPartStackTrace
 
 
-_FIND_RELEVANT_STACK_TRACE_BEGIN_REGEXES_BY_ERROR_NAME = ChainMap({
-    # There are two relevant stack traces involved in a "data race" section part. Their headers
-    # match the following patterns.
-    'data race': (
-        re.compile(r'^\s+(Read|Write) of size \d+ at 0x[\da-f]+ .*$'),
-        re.compile(r'^\s+Previous (read|write) of size \d+ at 0x[\da-f]+ .*$'),
-    ),
-    # There is one relevant stack trace in a "detected memory leaks" section part. Its header
-    # matches the following pattern.
-    'detected memory leaks': (
-        re.compile(r'^Direct leak of \d+ byte\(s\) in \d+ object\(s\) allocated from:$'),
-    ),
-    # There are two relevant stack traces involved in one "lock-order-inversion" error section part.
-    # Both of their headers match the same pattern.
-    'lock-order-inversion': (
-        re.compile(r'^\s+Mutex M\d+ acquired here while holding mutex M\d+ in .*$'),
-        re.compile(r'^\s+Mutex M\d+ acquired here while holding mutex M\d+ in .*$'),
-    ),
-    # Remaining sanitizer errors have the only/most relevant stack trace first in a section part, so
-    # we place no restrictions on the pattern of the header. We just find the first stack trace.
-}, defaultdict(lambda: (re.compile(r'^.*$'),)))
+_FIND_RELEVANT_STACK_TRACE_BEGIN_REGEXES_BY_ERROR_NAME: Mapping[str, Tuple[Pattern[str], ...]] = (
+    ChainMap({
+        # There are two relevant stack traces involved in a "data race" section part. Their headers
+        # match the following patterns.
+        'data race': (
+            re.compile(r'^\s+(Read|Write) of size \d+ at 0x[\da-f]+ .*$'),
+            re.compile(r'^\s+Previous (read|write) of size \d+ at 0x[\da-f]+ .*$'),
+        ),
+        # There is one relevant stack trace in a "detected memory leaks" section part. Its header
+        # matches the following pattern.
+        'detected memory leaks': (
+            re.compile(r'^Direct leak of \d+ byte\(s\) in \d+ object\(s\) allocated from:$'),
+        ),
+        # There are two relevant stack traces involved in one "lock-order-inversion" error section
+        # part. Both of their headers match the same pattern.
+        'lock-order-inversion': (
+            re.compile(r'^\s+Mutex M\d+ acquired here while holding mutex M\d+ in .*$'),
+            re.compile(r'^\s+Mutex M\d+ acquired here while holding mutex M\d+ in .*$'),
+        ),
+        # Remaining sanitizer errors have the only/most relevant stack trace first in a section
+        # part, so we place no restrictions on the pattern of the header. We just find the first
+        # stack trace.
+    }, defaultdict(lambda: (re.compile(r'^.*$'),)))
+)
 
 # Stack trace lines follow a "stack trace begin" line and match the following pattern.
-_FIND_STACK_TRACE_LINE_REGEX = re.compile(r'^\s*#\d+\s+.*$')
+_FIND_STACK_TRACE_LINE_REGEX = re.compile(r'^\s+#\d+\s+.*$')
 
 
 class SanitizerSectionPart:
@@ -96,40 +99,46 @@ class SanitizerSectionPart:
         Tuple of all stack traces from the section part that are relevant for generating the report.
     """
 
-    relevant_stack_traces: Tuple[SanitizerSectionPartStackTrace]
+    relevant_stack_traces: Tuple[SanitizerSectionPartStackTrace, ...]
 
-    def __init__(self, *, error_name: str, lines: Tuple[str]) -> None:
+    def __init__(self, *, error_name: str, lines: Tuple[str, ...]) -> None:
         relevant_stack_traces: List[SanitizerSectionPartStackTrace] = []
-        relevant_stack_trace_lines: Optional[List[str]] = None
         find_relevant_stack_trace_begin_regexes = (
             _FIND_RELEVANT_STACK_TRACE_BEGIN_REGEXES_BY_ERROR_NAME[error_name]
         )
 
-        for line in lines:
-            # Check if we're currently gathering lines of a relevant stack trace.
-            if relevant_stack_trace_lines is not None:
+        # Iterating through lines with an index and slices is easier than with an iterator in this
+        # case. The line that triggers the stop condition at the end of the following loop may be
+        # the same line that should trigger the start condition at the beginning of the following
+        # iteration. With an iterator, it's difficult to evaluate the same line in both places.
+        line_i = 0
+
+        # Find all the relevant stack traces from given lines.
+        for find_relevant_stack_trace_begin_regex in find_relevant_stack_trace_begin_regexes:
+
+            # Find the line that begins the relevant stack trace.
+            for line_i, line in enumerate(lines[line_i:], start=line_i):
+                match = find_relevant_stack_trace_begin_regex.match(line)
+                if match is not None:
+                    break
+
+            # Starting with the next line, gather lines that match the stack trace pattern until one
+            # doesn't match.
+            relevant_stack_trace_lines: List[str] = []
+            for line_i, line in enumerate(lines[line_i + 1:], start=line_i + 1):
                 match = _FIND_STACK_TRACE_LINE_REGEX.match(line)
                 if match is not None:
                     relevant_stack_trace_lines.append(line)
-                    continue
+                else:
+                    # Note that if this line happens to be a stack_trace_begin line, we won't miss
+                    # it on the next iteration of the outer loop. It will be checked since line_i
+                    # will still be the index for this line.
+                    break
 
+            # If we gathered any stack trace lines, store the relevant stack trace.
+            if relevant_stack_trace_lines:
                 relevant_stack_traces.append(
                     SanitizerSectionPartStackTrace(lines=tuple(relevant_stack_trace_lines))
                 )
-                relevant_stack_trace_lines = None
-                if len(relevant_stack_traces) == len(find_relevant_stack_trace_begin_regexes):
-                    break
-
-            find_relevant_stack_trace_begin_regex = (
-                find_relevant_stack_trace_begin_regexes[len(relevant_stack_traces)]
-            )
-            match = find_relevant_stack_trace_begin_regex.match(line)
-            if match is not None:
-                relevant_stack_trace_lines = []
-
-        if relevant_stack_trace_lines:
-            relevant_stack_traces.append(
-                SanitizerSectionPartStackTrace(lines=tuple(relevant_stack_trace_lines))
-            )
 
         self.relevant_stack_traces = tuple(relevant_stack_traces)

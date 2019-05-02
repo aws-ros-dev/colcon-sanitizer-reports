@@ -17,7 +17,7 @@ from typing import Tuple
 
 
 # Key comes from a line of ros2 code and matches the following pattern.
-_FIND_KEY_REGEX = re.compile(r'^\s*#\d+ (0x[\da-f]+ in|)\s*(?P<key>.*/ros2.*)\s*$')
+_FIND_KEY_REGEX = re.compile(r'^\s+#\d+ (0x[\da-f]+ in|)\s*(?P<key>.*/ros2.*)\s*$')
 
 # Parts of a key that are changeable between otherwise identical stack trace can be found and masked
 # with the following pattern.
@@ -54,7 +54,7 @@ class SanitizerSectionPartStackTrace:
 
     key: str
 
-    def __init__(self, lines: Tuple[str]) -> None:
+    def __init__(self, lines: Tuple[str, ...]) -> None:
 
         key = None
         for line in lines:
